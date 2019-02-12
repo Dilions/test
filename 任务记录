@@ -108,6 +108,8 @@ func main() {
 	企业意志来采购物资
 	贷款到期是续借扩大生产还是优先还贷是个问题**
 		如果单次生产（单位时间内的生产）货物的（预期）利润超过贷款额，则优先还贷。否则优先扩大生产
+	工作岗位分配是个大问题，如何拟出不同的岗位需求，人员变动的情况下如何维持平衡** 
+
 银行：
 	贷款到期时去催债
 				√	如果对方当下有足够利润积累且状态为考虑还贷则		收还贷款
@@ -138,12 +140,45 @@ func main() {
 计量单位：
 	消耗物资用耐久度来表示
 	生产物资是千克来衡量
+
+
+
+
+
+type company struct {
+	name  	string
+	start	string
+	owner 	string
+
+	locatex int
+	locatey int
+
+	product string
+
+	resource []int
+	product  []int
+
+	hardware []int
+	provide_distance int
+	//记录一年的条目，每半年检查一次，删除超出一年的记录
+	cash int
+	record_output []string  //支出 记录格式 品类#数量#单价 
+	record_income []string	//收入 记录格式 品类#数量#单价
+
+//	worker []
+}
+
+func dailymaintance() {
+	for i := 0; i < len(pop); i++ {
+		for j := 0; j < len(pop[i].stuff_taking); j++ {
+			pop[i].stuff_taking[i]-=1
+			if (pop[i].stuff_taking[i]%10000==1) { //报废
+				删除物品
+			}
+		}
+	}
 	
-
-
-
-
-
+}
 
 
 
