@@ -27,6 +27,7 @@ type landstruct struct {
 type pops struct {
 	live 	int
 	name 	string
+	id		int64   //身份证号
 	age 	int
 	hunger 	int
 	skills 	[]string
@@ -39,9 +40,10 @@ type pops struct {
 	live_placey		int
 	move_distance	int 
 
-	lifecircle	   int
-	stuff_using  []int64  	//装配使用中
-	stuff_taking []int64	//生产富余或闲置物资
+	life_level		int
+	life_circle	   	int
+	stuff_using  []	int64  	//装配使用中
+	stuff_taking []	int64	//生产富余或闲置物资
 }
 var landinterface	[land_lenth][land_width]landstruct
 var landsurface 	[land_lenth][land_width]string
@@ -442,12 +444,15 @@ type Company struct {
 	live 		bool
 	name 		string
 	age 		int
-	leader 	[]	string
+	boss 		string
+	leader 	[]	string 	//董事会
 	stockcode 	int 	//股票代码，也可作为集团统一识别码
 
 	date_setup 	string
 
-	product 	string
+	product 	int //procedure工序   formula配方
+	product_resource []int64
+	product_madeup	 []int64
 	work_placex int
 	work_placey int
 
@@ -459,7 +464,8 @@ type Company struct {
 	stuff_hardware	[]	int64
 
 	stuff_resource  []	int64  	//装配使用中
-	stuff_product 	[]	int64		//生产富余或闲置物资
+	stuff_product 	[]	int64	//生产富余或闲置物资
+	stuff_progress 	int
 
 	cash 				int64
 	debt 				int64
@@ -467,16 +473,26 @@ type Company struct {
 	record_income 	[]	string
 }
 
-func dailymaintance() {
+/*--
+考虑下来发现物物交易和金钱交易似乎并不互相排斥
+而物物交换的核心是找到物品里的“硬通货”
+目前看来似乎食用稻米比较合适
+还需要考虑金钱如何流通到大家手里这个问题
+
+//还需要考虑消费升级
+*/
+func maintance_personal() {   //个人消费消耗
 	for i := 0; i < len(pop); i++ {
 		for j := 0; j < len(pop[i].stuff_using); j++ {
 			pop[i].stuff_using[j]-=1
-			if (pop[i].stuff_using[j]%100000<=pop[i].lifecircle) { 
-				尝试搜索购买
+			if (pop[i].stuff_using[j]%100000<=pop[i].life_circle) { 
+				尝试搜索周边并购买
 				if 买到了 {
 					修改持有列表
+						没有则添加新项目并重新排列
+						目前有相应物资的情况就找到相应项目来增加其耐久度
 				}else{
-					发布需求
+					发布所缺物品需求
 				}
 
 				if (pop[i].stuff_using[j]%90000==1) { //报废  pop = append(pop[:i], pop[i+1:]...)
@@ -484,13 +500,91 @@ func dailymaintance() {
 					pop[i].stuff_using[j] = append(pop[i].stuff_using[:j], pop[i].stuff_using[j+1:]...)
 				}	
 			}
-			
 		}
+	}
+}
+
+var Companys Company
+//企业创立
+//此函数调用于条件判断之后的企业数据初始化
+func Company_setup(leadername string,setup_posex int,setup_posey int,object int) {
+	// var newpop pops
+	// newpop.name=a[0]+"#"+strconv.Itoa(b+1)
+	// newpop.live_placex=fatherchosenplacex
+	// newpop.live_placey=fatherchosenplacey
+	// newpop.move_distance=5
+	// newpop.hunger=6
+	// newpop.work="none"
+	// newpop.age=0
+	// newpop.live=1
+	// pop = append (pop,newpop)
+	var newcompany Company
+	newcompany.live=true
+	newcompany.name=leadername+"'s inc"
+	newcompany.boss=leadername
+
+	newcompany.date_setup=strconv.Itoa(date_year)+"-"+strconv.Itoa(date_month)+"-"+strconv.Itoa(date_day)
+
+	newcompany.work_placex=setup_posex
+	newcompany.work_placey=setup_posey
+
+	newcompany.product=object
+
+	newcompany.distance_resource=4
+	newcompany.distance_sells	=4
+
+	加载配方
+
+	Companys = append(Companys, newcompany)
+}
+/*
+考虑到企业生产用硬件设备有的是增加效率的，有的是生产必要条件。那么按照当下的命名制度要区别这些东西只能通过物品类别编号来区分了
+。。。还有很多事情要做啊。。。 
+*/
+
+//从外部数据company大类中提取数据进行维护
+/*一次性的原材料采购数量应该设为多少，和什么相关？库存呢
+考虑到企业间可能是天差地别的，需要一个覆盖面广的标准，采购数量和库存应根据销售数据来计算，
+销售数据“平均数”应该和产品价值，工期长短，上周或上半月或上个月的销量来计算其 “基准数”
+而实际采购量和产品库存应在基准数的基础上加2或者5或者10？（工期越短加成数越大，价值越高加成数量越小）
+
+*/
+func maintance_company() {
+	for i := 0; i < len(Companys); i++ {
+		
+	
+	更新生产进度
+		根据设备情况、人员数量、技能水准等因素计算生产速率 来推进生产（点数）
+		如果一轮生产结束
+			用除法和余数来更新原材料每次使用的数量（份）
+			更新原材料和产品库存
+			概率增加技术水平熟练度
+
+	检查销售情况
+		计算库存额定值
+	检查原材料库存 	于额定值对比
+		不够就去购买
+			买不全就发布需求
+			买不到就发布需求
+	检查产品库存		于额定值对比
+		不足则继续生产
+		已经满足则停产
+
+	检查日期发放人员工资
+
+	/*
+		公司人员结构怎么处理？？？多少岗位，什么岗位多少人怎么办？？？
+		不同 的公司人员结构天差地别，该怎么合理的分配
+		**	或许不同类型的公司就该不同模型处理。。。。
+			生产制造：农林牧矿，制造合成加工，电力燃气供水，建筑。。。
+			服务：运输，娱乐，销售，医疗，教育，计算机软件，科学研究。。。
+
+		用菱形搜索的时候应该有每日搜索次数上限
+		人员应带有属性选项
+	*/
 	}
 	
 }
-
-
 
 
 
