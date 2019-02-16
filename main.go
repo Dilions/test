@@ -30,7 +30,12 @@ type pops struct {
 	id		int64   //身份证号
 	age 	int
 	hunger 	int
-	skills 	[]string
+	edu		int
+	happy	int
+	health 	int
+
+	character	[]int 	//特性也得做成列表，通过索引去找或者直接用数组代替
+	skills 		[]int 	//工作技能
 
 	work string
 	work_placex []int
@@ -40,10 +45,13 @@ type pops struct {
 	live_placey		int
 	move_distance	int 
 
-	life_level		int
-	life_circle	   	int
+	life_level		int 	//生活等级，调控需求
+	life_circle	   	int 	//生活周期，与职业财产等相关，调控需求
+
 	stuff_using  []	int64  	//装配使用中
 	stuff_taking []	int64	//生产富余或闲置物资
+
+	stuff_mental []	int64   //生活精神等非消耗物资
 }
 var landinterface	[land_lenth][land_width]landstruct
 var landsurface 	[land_lenth][land_width]string
@@ -463,14 +471,15 @@ type Company struct {
 	
 	stuff_hardware	[]	int64
 
-	stuff_resource  []	int64  	//装配使用中
+	stuff_resource  []	int64  	//准备用作生产的物资
 	stuff_product 	[]	int64	//生产富余或闲置物资
 	stuff_progress 	int
 
+	//记录一年的条目，每半年检查一次，删除超出一年的记录
 	cash 				int64
 	debt 				int64
-	record_output 	[]	string
-	record_income 	[]	string
+	record_output 	[]	string //支出 记录格式 品类#数量#单价 
+	record_income 	[]	string //收入 记录格式 品类#数量#单价
 }
 
 /*--
@@ -482,6 +491,7 @@ type Company struct {
 //还需要考虑消费升级
 */
 func maintance_personal() {   //个人消费消耗
+	//日常损耗
 	for i := 0; i < len(pop); i++ {
 		for j := 0; j < len(pop[i].stuff_using); j++ {
 			pop[i].stuff_using[j]-=1
@@ -502,22 +512,21 @@ func maintance_personal() {   //个人消费消耗
 			}
 		}
 	}
+
+	//特殊需求损耗
+	for i := 0; i < len(pop); i++ {
+		检查当下可交易物资
+		检查现有第三需求物资存量 ， 购买周期同其他物品相似，通过耐久来控制周期，
+		比如教育周期或者医疗疗程，甚至是某周口感吃腻了，用耐久值来模拟娱乐兴奋度的消减，同时通过权值来控制兴奋度调剂购买选择趋向（权值为满且周期极短则为毒品）
+			优先满足 饥饿（口感）， 健康 ，  娱乐  ， 教育
+	}
 }
 
 var Companys Company
 //企业创立
 //此函数调用于条件判断之后的企业数据初始化
 func Company_setup(leadername string,setup_posex int,setup_posey int,object int) {
-	// var newpop pops
-	// newpop.name=a[0]+"#"+strconv.Itoa(b+1)
-	// newpop.live_placex=fatherchosenplacex
-	// newpop.live_placey=fatherchosenplacey
-	// newpop.move_distance=5
-	// newpop.hunger=6
-	// newpop.work="none"
-	// newpop.age=0
-	// newpop.live=1
-	// pop = append (pop,newpop)
+
 	var newcompany Company
 	newcompany.live=true
 	newcompany.name=leadername+"'s inc"
@@ -555,6 +564,7 @@ func maintance_company() {
 	
 	更新生产进度
 		根据设备情况、人员数量、技能水准等因素计算生产速率 来推进生产（点数）
+		*生产点数=基数*人数*技能水平+基数*设备数量*设备性能
 		如果一轮生产结束
 			用除法和余数来更新原材料每次使用的数量（份）
 			更新原材料和产品库存
@@ -579,6 +589,15 @@ func maintance_company() {
 			生产制造：农林牧矿，制造合成加工，电力燃气供水，建筑。。。
 			服务：运输，娱乐，销售，医疗，教育，计算机软件，科学研究。。。
 
+			生产制造这些都好说，产品是实物，需要这个东西，但是服务业的产品多种多样，这个对于其他人其他公司的影响就非常复杂了
+			比如有的是提高生产效率的，有的是维护个人属性如健康，饥饿，娱乐等。健康饥饿娱乐都可以量化购买，那么运输...软件，研究，教育...
+		*	教育值？来增加技能水平？那怎么让这些人意识到受教育的好处而去主动选择并接受
+
+			软件或者研究提供的产品同医疗娱乐等都是属性类的，应该在正规生产之外再开个分立的判断来确定是否购买。
+		***	生产需求和提升需求分立！
+
+			如何把第三产业产品性能体现在标识中 类（属性） 编号 权值（购买意愿考量和产品效果1-999） 数量（教育产品中表示等级） 耐久（使用时间，教育产品中指代本次受教育时长）
+												01	   12 	958  2
 		用菱形搜索的时候应该有每日搜索次数上限
 		人员应带有属性选项
 	*/
